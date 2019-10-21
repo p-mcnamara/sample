@@ -1,0 +1,131 @@
+---
+title: "SQL Aggregate and Windowing Functions"
+author: "Peter McNamara"
+date: "23 May 2019"
+output: html_document
+
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(zoo)
+options(width=120)
+```
+
+My background is Oracle databases and one of the most useful features of SQL in my opinion are windowing or analytic functons.  These allow access to data on other rows (LAG will retrieve a value from the previous row for example) or to aggregate data and combine on the current row (SUM will aggregate and then put the total on each row within a window) without complicated correlated sub-queries.
+
+With the `dplyr` and `zoo` packages, R replicates the syntax and functionality of these SQL functions.  This vignette will show SQL and its' R equivalent to demonstrate the power and ease of implementing what has become a fundamental building block of SQL 
+
+## MtCars Dataset
+
+To demonstrate the queries the mtcars dataset will be used.  Its structure is shown here.
+
+
+```{r warning=FALSE, echo=TRUE, eval=TRUE, message=FALSE}
+library(dplyr)
+library(zoo)
+cars <- mtcars
+str(cars)
+```
+
+## Aggregate SQL
+
+Firstly, SQL provides a number of Aggregate functions to roll up data to a grouped level.  For example a query might be to group by the `cyl` column:
+
+```{SQL echo=TRUE, eval=FALSE}
+SELECT cyl, AVG(mpg) mpg_mean, 
+       COUNT(*) cnt, SUM(mpg) mpg_sum, 
+       MAX(mpg) mpg_max
+FROM   cars
+GROUP BY cyl;
+```
+
+The equivalent statement in dplyr is quite similar in the elements required:
+
+```{r warning=FALSE, echo=TRUE, eval=TRUE, message=FALSE}
+cars %>%                           # TABLE Name
+  group_by(cyl) %>%                # GROUP_BY clause
+  summarise(mpg.mean = mean(mpg),  # Aggregate Functions AVG, SUM and COUNT
+            cnt = n(),
+            mpg.sum = sum(mpg),
+            mpg.max = max(mpg))
+```
+
+## Analytic and Windowing SQL
+
+The statement above summarises the data to one observation per `cyl`.  Often in SQL you may wish to retain the original rows of data but enhance each row with aggregate data or data from other rows.  The SQL below gives a row number to each record and finds the previous (or lag) `mpg` for each car ordered by the mpg, ht and wt columns, for cars that have 6 cylinders.  The window here spans each `cyl`, so without the WHERE, every row would be shown and the row_number count would restart for each `cyl` group:
+
+```{SQL echo=TRUE, eval=FALSE}
+SELECT mpg, cyl, hp, wt, qsec, 
+       ROW_NUMBER() OVER (PARTITION BY cyl ORDER BY mpg, hp, wt) rn,
+       LAG(mpg) OVER (PARTITION BY cyl ORDER BY mpg, hp, wt) mpg_lag
+FROM cars
+WHERE cyl = 6
+```
+
+In R dplyr, instead of using the `summarise` function, `mutate` is used so that the original observations are preserved but extra columns are added: 
+
+```{r warning=FALSE, echo=TRUE, eval=TRUE, message=FALSE}
+
+cars %>%                    # TABLE Name
+  group_by(cyl) %>%         # PARTITION BY clause
+  arrange(mpg, hp, wt) %>%  # ORDER BY clause 
+  mutate(rn = row_number(), # Analytic functions ROW_NUMBER and LAG
+         mpg.lag = lag(mpg)) %>%
+  ungroup() %>%
+  # SELECT clause
+  select(mpg, cyl, hp, wt, qsec, rn, mpg.lag) %>%
+  # WHERE clause
+  filter(cyl == 6)
+
+```
+
+Finally, Aggregate Analytic functions return summary columns on each row, so let's add the number of observations, maximum mpg, average qsec and the rolling average qsec within cars that have 6 cylinders.  Then instead of ordering by mpg, hp and wt, let's order by `drat` to find the next (lead) `mpg` as well.  The SQL would be:
+
+```{SQL echo=TRUE, eval=FALSE}
+SELECT mpg, cyl, hp, wt, qsec, 
+       ROW_NUMBER() OVER (PARTITION BY cyl ORDER BY mpg, hp, wt) rn,
+       LAG(mpg) OVER (PARTITION BY cyl ORDER BY mpg, hp, wt) mpg_lag,
+       MAX(mpg) OVER (PARTITION BY cyl) mpg_max,
+       AVG(qsec) OVER (PARTITION BY cyl) qsecc_mean,
+       AVG(qsec) OVER (PARTITION BY cyl ORDER BY mpg, hp, wt 
+                RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) qsec_cummean,
+       drat,
+       LEAD(mpg) OVER (PARTITION BY cyl ORDER BY drat) mpg_lead       
+FROM cars
+WHERE cyl = 6
+```
+
+Note that for the cumulative mean, SQL needed the RANGE BETWEEN statement to define the window as from the start of the window (the first row per `cyl`) to the current row.  The `zoo` package provides a `cummean` function that does the same thing.   
+
+```{r warning=FALSE, echo=TRUE, eval=TRUE, message=FALSE}
+
+cars %>%                    # TABLE Name
+  group_by(cyl) %>%         # PARTITION BY clause
+  arrange(mpg, hp, wt) %>%  # ORDER BY clause 
+  mutate(rn = row_number(), # Analytic Functions
+         mpg.lag = lag(mpg),
+         cnt = n(), 
+         mpg.max = max(mpg),
+         qsec.mean = mean(qsec),
+         qsec.cummean = cummean(qsec)) %>%
+  arrange(drat, qsec) %>%          # New ORDER BY Clause
+  mutate(mpg.lead = lead(mpg)) %>% # LEAD analytic function
+  arrange(rn) %>%
+  ungroup() %>%
+  # SELECT clause
+  select(mpg, cyl, hp, wt, qsec, rn, mpg.lag, mpg.max, qsec.mean, 
+         qsec.cummean, drat, mpg.lead) %>%
+  # WHERE clause
+  filter(cyl == 6)
+```
+## Conclusion
+
+The dplyr package offers a number of functions to mirror what SQL does.  Further functions that can be used in this structure are `inner_join`, `left_join` and `full_join` for joining datasets together.  So, transitioning between SQL and R is possible, keeping similar command structures.  

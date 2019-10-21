@@ -1,0 +1,648 @@
+---
+title: "R - Python Cheat Sheet"
+author: "Peter McNamara (88451999)"
+date: "29/09/2019"
+output: html_document
+---
+
+<style>
+.column-left{
+  float: left;
+  width: 49%;
+  text-align: left;
+}
+.column-right{
+  float: right;
+  width: 49%;
+  text-align: left;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+knitr::opts_chunk$set(echo = TRUE)
+options(width = 150)
+
+library(reticulate)
+library(readr)
+use_python("/Users/p_mcn/AppData/Local/Programs/Python/Python37")
+
+# Write out the mtcars dataset, to be used by both Python and R
+write.csv(mtcars, "mtcars.csv")
+
+
+```
+R and Python are 2 of the most popular languages used for data science currenty. Both mostly have the same functionality but implement it in different ways.  This cheat sheet will compare various aspects between the languages, showcasing how to perform the same function in each language.
+
+## Library calls
+
+Both python and R have built-in functions in the base model but to extend functionality, extra packages need to be loaded.  Machine learning algorithms, different data structures, better plotting are all available through loading libraries.
+
+For R, the **library** function will allow access to a particular package, whilst in Python, the **import** command is used to import the packages.  An alias can be given to this package as generally whenever referencing anything from a package, the package name must be specified.  Below, instead of typing `numpy` each time, this is shortened to `np`.
+
+<div class = "row">
+<div class = "column-left">
+#### R
+```{r message=FALSE}
+# Reading files:
+library(readr)
+
+# For pipelines:
+library(dplyr)
+```
+</div>
+<div class = "column-right">
+#### Python 
+```{python}
+import numpy as np
+import pandas as pd
+import os  # for setting the working directory
+import matplotlib.pyplot as plt # plotting further down
+from math import pi # Import just pi from the math pkg
+```
+</div>
+</div>
+
+## Data Structures
+
+There are a number of data structures commonly used for storing data for Data Science applications.  In R there are:
+
+ - vectors, a one-dimensional array of numbers.  This can be initialised using **c()**
+ - matrices, an n-dimensional array of numbers, initialised using the **matrix()** function.
+ - dataframes which store tables of rows and columns.  Each column can be a different type (numeric, character, logical for example).
+ 
+Python has similar structures:
+
+ - lists store collections, which can be any type
+ - ndarrays are n-dimensional arrays from the **numpy** package
+ - dataframes again can store a mix of numeric and other data types in a row/column structure.  These are initialised from the **pandas** package.
+ 
+### Manually Creating Matrices and Arrays Structures
+
+<div class = "row">
+<div class = "column-left">
+#### R
+```{r}
+# First create a vector of numbers
+vector1 <- c(1, 4, 7, 2, 5, 8, 3, 6, 9)
+# Create a 3 x 3 matrix from the vector and 
+# then specify how many rows and columns there are.
+# columns are created first and then rows
+m <- matrix(vector1, nrow=3, ncol=3) 
+print(m)
+print(sum(m))
+
+```
+</div>
+<div class = "column-right">
+#### Python 
+```{python}
+
+
+# numpy array can be created from a list of lists.  
+# Each list is a row in the ndarray
+# Result is a 3 x 3 matrix
+m = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+print(m)
+ 
+print(np.sum(m)) # Then do a sum over matrix
+
+```
+</div>
+</div>
+
+### Manually Creating Dataframe Structures
+
+Dataframes are more versatile than matrices or ndarrays as they can store all datatypes, not just numeric.  For Python, they can be manually created from dictionaries using the **DataFrame** method.  In R, the **data.frame** function concatenates columns together to form the dataframe.
+
+<div class = "row">
+<div class = "column-left">
+#### R
+```{r}
+# Create 3 columns in Dataframe with different types.
+# Each column is a vector.
+df <- data.frame(colA=c(1, 2, 3),
+                 colB=c("First", "Second", "Third"),
+                 colC=c(TRUE, FALSE, TRUE))
+
+
+print(df)
+
+```
+</div>
+<div class = "column-right">
+#### Python 
+```{python}
+# create 3 lists, then put together into a dictionary
+# Dictionary then becomes a dataframe.
+colA = [1, 2, 3]
+colB = ["First", "Second", "Third"]
+colC =  [True, False, True]
+dict = { 'colA':colA, 'colB':colB, 'colC':colC }
+df = pd.DataFrame(dict)
+print(df)
+
+```
+</div>
+</div>
+
+### Adding Rows to Dataframes
+
+Often, a dataframe will need to be expanded to have extra rows added.  The new row will have the same columns as the existing dataframe.
+
+R has the **rbind** (row bind) function to add rows whilst Python has the **append** function.
+
+<div class = "row">
+<div class = "column-left">
+#### R
+```{r}
+# Create a new data frame with the same structure
+new_row <- data.frame(colA=4,
+                 colB="Fourth",
+                 colC=FALSE)
+
+
+
+# Add the new row to df using rbind
+df <- rbind(df, new_row)
+
+
+```
+</div>
+<div class = "column-right">
+#### Python 
+```{python}
+# create a new dictionary, then dataframe
+# Then use append method to append row
+colA = [4]
+colB = 'Fourth'
+colC = True
+new_dict = { 'colA':colA, 'colB':colB, 'colC':colC }
+new_row = pd.DataFrame(new_dict)
+# Append the new row to the data frame
+df = df.append(new_row, ignore_index=True)
+
+```
+</div>
+</div>
+
+### Adding Columns to Dataframes
+
+Dataframes may also have columns added.  Here the number of rows stays the same but further columns are  added to data structure.  This may occur when deriving new fields or creating a dataframe from smaller fragments.
+
+R can be done using:
+
+ - **cbind** (column bind)
+ - using $ notation to add new column
+ 
+Python does the same either:
+
+ - using the **assign** method
+ - using [] notation
+ 
+<div class = "row">
+<div class = "column-left">
+#### R
+```{r}
+# Create 2 vectors with the same number of rows
+# as the dataframe
+new_col1 <- c(0, 5, 10, 15)
+new_col2 <- c("A", "B", "C", "D")             
+
+# Use cbind to add 1st new column
+df <- cbind(df, new_col1)
+# Then use $ notation to add the 2nd new column
+df$new_col2 <- new_col2
+
+df
+
+```
+</div>
+<div class = "column-right">
+#### Python 
+```{python}
+# Create 2 new lists 
+# Same length as dataframe
+new_col1 = [0, 5, 10, 15]
+new_col2 = ["A", "B", "C", "D"] 
+
+# Use assign function to add the column
+df = df.assign(new_col1 = new_col1)
+# Or use [] notation to create the new column
+df["new_col2"] = new_col2
+
+print(df)
+
+```
+</div>
+</div>
+
+## Reading Files
+
+Datasets are often in files, so a common first step is to read data.  Here, the data is in mtcars.csv file and is the mtcars dataset from base R.  
+
+In R, the **read.csv** function from the **readr** library is a good option.  By default, character strings are converted to factors, so below the code keeps the strings as characters.  Also below, the working directory is set and the first column is used as rownames.  Also, the separator between columns can be specified.  It defaults to a comma (,) if not included.
+
+Python's **pandas** package has **read_csv** to read a file into a dataframe.  Again, the first column can be specified as the rownames.  Note that since the import statement set pandas to pd, the read_csv call is `pd.read_csv`.  As per R, the separator defaults to a comma but can be specified in the method call.
+
+To display the structure of the resulting dataframes, **str** is used in R and the **info()** method is used in Python.
+
+Finally, writing dataframes back out can be done in R via **write.csv** (for comma separated) or **write.table** (to specify the separator), and in Python by the **out_csv** method.  These are shown below.
+
+<div class = "row">
+<div class = "column-left">
+#### R
+```{r }
+# Set the working directory for R
+setwd("/GitDev/RPython/data/")
+
+# Read the file to a dataframe
+cars = read.csv("mtcars.csv", stringsAsFactors = FALSE,
+                row.names = 1, sep=",")
+str(cars)   # Show details about dataframe
+# Now write the dataframe back out, with rownames 
+# and a different separator..
+write.table(cars, "mtcarsR.csv", row.names = TRUE, sep='|')
+```
+</div>
+<div class = "column-right">
+#### Python
+```{python}
+# Set the working directory for Python
+os.chdir('c:\\GitDev\\RPython\\data')
+
+# Read the file to a pandas dataframe
+cars = pd.read_csv('mtcars.csv',index_col=0)
+
+cars.info()  # Show details about dataframe
+
+cars.to_csv("mtcarsPy.csv", index=True, sep="|")
+# the above writes out the file with rownames and pipe separated
+```
+</div>
+</div>
+
+## Show dataframe
+
+Both R and Python have **head** and **tail** functions to quickly show a small number of either the first or last rows in a dataframe.  Very useful for a quick eyeball of the data.  In python this will be a method on dataframe object whereas in R the dataframe object is passed to the function.
+
+**summary** in R shows quartile, min, max and mean information about columns and in Python the **describe** method does similar.  These can again be used to quickly understand the data and are shown below.
+
+<div class = "row">
+<div class = "column-left">
+#### R
+```{r }
+# tail(cars, 3) # last 3 rows
+head(cars, 3)   # first 3 rows
+```
+</div>
+<div class = "column-right">
+#### Python
+```{python}
+#cars.tail(3)  # last 3 rows
+cars.head(3)   # first 3 rows
+```
+</div>
+</div>
+
+<div class = "row">
+<div class = "column-left">
+#### R
+```{r }
+summary(cars[, 1:2])   # first 2 columns
+```
+</div>
+<div class = "column-right">
+#### Python
+```{python}
+cars.iloc[:,0:2].describe()   # first 2 columns
+```
+</div>
+</div>
+## Aggregating Columns in Dataframe
+Often, columns need to be aggregated, to perform data analysis such as Averaging, Summing, etc.  With Python, there are methods that are called on an object (everything is an object) whilst for R there are functions to call passing the data required.  
+
+Below shows examples of:
+
+ - sum
+ - min
+ - max
+ - mean
+ - median
+ 
+<div class = "row">
+<div class = "column-left">
+
+#### R
+```{r }
+cat(paste(sum(cars$mpg),
+          min(cars$cyl),
+          max(cars$qsec),
+          mean(cars$drat),
+          median(cars$hp), sep="\n" ) )  
+```
+</div>
+<div class = "column-right">
+#### Python
+```{python}
+print(str(cars["mpg"].sum(axis=0)) + "\n" +  
+      str(cars["cyl"].min(axis=0))+ "\n" + 
+      str(cars["qsec"].max(axis=0)) + "\n" +  
+      str(cars["drat"].mean(axis=0)) + "\n" +  
+      str(cars["hp"].median(axis=0))) 
+```
+</div>
+</div>
+
+## Arithmetic and Logical Operations 
+
+The table below compares the different syntax for common operations in R and Python.
+
+Operation                |  R       |  Python 
+---------                | -------  | -------
+Addition, Subraction     |  + -     |  + -
+Multiplication, Division |   * /    |   * /
+modulus                  |   %%     |   %
+Integer division         |   %/%    |   //
+Power | ^ | ** 
+OR | \| | or
+AND | & | and
+Equal | == | ==
+Not Equal | != | !=
+Greater Than | > | >
+Less Than | < | <
+Greater than or Equal to | >= | >=
+Less Than or Equal to | <= | <=
+
+## Code Blocks
+
+Python relies on indentation to denote code blocks whilst R uses pairs of braces {}.  Indenting does not affect R but just makes the code more readable.  Examples of code blocks will be in the sections below.
+
+### Loops and If Statements
+
+Both languages provide `For` and `While` loops for iterating.  This can be important for processing each row of a file or dataframe, performing tailored operations on each row.
+
+R uses **If, else if, .., else** for having more than one option in a if else structure whilst Python has **if, elif, .., else** to perform the same flow. 
+
+As mentioned in the code blocks section, loops and if statements in R use braces to encompass the steps at each level whilst Python uses : and indentation.  For formatting, to go over multiple lines with the same statement in Python (for example an if statement with multiple conditions, either '\\' can be put at the end of the line to split onto the next line or the statement can be enclosed in parentheses.  
+
+R must have loop control and conditions within parentheses ().  R additionally requires the closing brace and **else** or **else if** to be on the same line.
+
+<div class = "row">
+<div class = "column-left">
+#### R
+```{r }
+count_low = 0
+count_mid = 0
+count_high = 0
+
+for (i in 1:nrow(cars)) {
+  if (cars[i, ]$mpg %/% 5 <= 2) {
+    count_low = count_low + 1
+  # closing brace and else if are on same line
+  } else if (cars[i, ]$mpg %/% 5 > 2 & 
+             cars[i, ]$mpg %/% 5 <= 3) {
+      count_mid = count_mid + 1
+   } else {
+      count_high = count_high + 1
+   }  
+}
+# To concatenate, paste() is used which defaults to  
+# one space between each element
+print(paste("Low/Medium/High =", count_low, count_mid, count_high))
+```
+</div>
+<div class = "column-right">
+#### Python
+```{python}
+count_low = 0
+count_mid = 0
+count_high = 0
+
+for i, row in cars.iterrows():
+   if row["mpg"] // 5 <= 2:
+      count_low = count_low + 1
+   # condition goes over multiple lines using \
+   elif row["mpg"] // 5 > 2 and \
+        row["mpg"] // 5 <= 3:
+      count_mid = count_mid + 1
+   else:
+      count_high = count_high + 1
+      
+      
+# Note that integers MUST be converted to strings 
+# for display and extra spaces added explicitly
+print("Low/Medium/High = " + str(count_low) + " " + str(count_mid) + " " + str(count_high))
+```
+</div>
+</div>
+
+### Functions
+
+Functions are a good way of reusing code, where the same code is re-run multiple times from different sections.  R and Python both allow for user-defined functions.
+
+In R, a variable is assigned as a **function()** and again the code for the function is enclosed in braces as it is a code block.  Parameters are specified within the function parentheses and can be have a default value for when they are not passed.  To return an object from the function, either reference it on the final line of the function or explicitly use **return**.
+
+Python uses the **def** call to define a function and as consistent with Python, : and indentation are used to define the code within the function.  As with R, parameters can be passed and defaulted when not passed.  Passing back from a function uses the **return** statement.
+
+<div class = "row">
+<div class = "column-left">
+#### R
+```{r }
+
+sum_rows <- function (df, p_double=FALSE) {
+  
+  i = 1
+  sum_row = 0
+  while (i <= nrow(df)) {
+    sum_row = sum_row + sum(df[i, ])
+    
+    i = i + 1
+  }
+  
+  if (p_double) {
+    sum_row = sum_row * 2
+  }
+  # return is optional, just reference the variable 
+  sum_row
+  
+}
+
+cat(paste("total sums =", sum_rows(cars),
+          sum_rows(cars, TRUE), 
+          sum_rows(p_double=TRUE, df=cars), sep="\n"))
+```
+</div>
+<div class = "column-right">
+#### Python
+```{python}
+def sum_rows(df, p_double=False):
+  
+   i = 0  
+   sum_row = 0
+   while i < len(df):
+      sum_row = sum_row + df.iloc[i].sum()
+    
+      i = i + 1
+  
+  
+   if p_double:
+      sum_row = sum_row * 2
+  
+   # Return the value
+   return sum_row
+  
+  
+  
+print("total sums =\n" + str(sum_rows(cars)) + "\n" +        str(sum_rows(cars, True)) + "\n" +
+      str(sum_rows(p_double=True, df=cars)))
+```
+</div>
+</div>
+
+## Filtering Dataframes
+
+Under R, there are many ways to filter rows and columns from a dataframe:
+
+- Base R provides square bracket notation [] to filter rows and columns
+- The `dplyr` package simplifies many functions into a pipeline where **%>%** passes the previous manipulation into the next function.  Here, **filter** can be used to filter rows and then **select** can be used to limit the number of columns.
+
+Python also provides a number of different ways to select rows and columns:
+
+- using square bracket [] notation
+- using loc and iloc methods
+
+Python uses zero-based indexing so that the first element in a list, array etc., is at index 0, the second at index 1 and so on.
+
+<div class = "row">
+<div class = "column-left">
+#### R
+```{r }
+# using [ , ], the first part are the rows to select
+# and after the comma are the columns to return
+# Select columns by name 
+df1 <- cars[, c("mpg", "cyl") ]
+
+
+
+
+# Select the 1st 4 rows 
+df2 <- cars[1:4, ]
+# Select rows and columns by name
+df3 <- cars[c("Mazda RX4", "Datsun 710"), 
+            c("mpg", "cyl")]
+
+# use select to get columns
+df4 <- cars %>% select(cyl, mpg)
+
+# Selecting 1 column returns a vector
+# Wrapping in as.data.frame will return a dataframe
+vector1 <- cars[, c("cyl")]
+
+# Select rows and columns by position
+df5 <- cars[c(1:3), c(9:11)]
+# Select rows and columns by number
+df6 <- cars[c(1, 3, 5), c(4, 6, 8)]
+
+# Using dplyr structure, filter on rows and 
+# then select columns
+df7 <- cars %>% 
+  filter(cyl==4) %>%
+  select(mpg, cyl, qsec)
+
+cat(paste(paste(nrow(df1), ncol(df1), sep = ", "),
+          paste(nrow(df2), ncol(df2), sep = ", "),
+          paste(nrow(df3), ncol(df3), sep = ", "),
+          paste(nrow(df4), ncol(df4), sep = ", "),
+          paste(nrow(df5), ncol(df5), sep = ", "),
+          paste(nrow(df6), ncol(df6), sep = ", "),
+          paste(nrow(df7), ncol(df7), sep = ", "),
+          length(vector1), sep="\n"))
+```
+</div>
+<div class = "column-right">
+#### Python
+```{python}
+
+
+# Selecting columns with [], columns can be names
+df1 = cars[["mpg", "qsec"]]
+# Select rows with a slice.  Rows start from 0.
+# When specifying a range, the 1st number is the 
+# row number (starting at 0) and the second is 
+# one past the row being returned so
+# here we select rows 0, 1, 2 and 3 but not 4
+df2 = cars[0:4]
+# loc method uses the row and column names
+df3 = cars.loc[["Mazda RX4", "Datsun 710"], 
+               ['cyl', 'drat']]
+
+# : by itself below means the slice is all rows
+df4 = cars.loc[:, ['cyl', 'mpg']]
+# Single brackets on one column will return a 
+# pandas series, not a dataframe.  
+# Double brackets return a 1-column dataframe
+series1 = cars["cyl"]
+
+# iloc method uses indexes rather than names
+df5 = cars.iloc[0:3, 8:11]
+# Pick different rows and columns
+df6 = cars.iloc[[0, 2, 4], [5, 7, 9]]
+
+# Use condition to filter rows and then select columns 
+# Since columns are named, loc is used
+df7 = cars.loc[cars["cyl"] == 4, 
+               ["mpg", "cyl", "qsec"]]
+
+
+print(str(df1.shape) + "\n" 
+    + str(df2.shape) + "\n" 
+    + str(df3.shape) + "\n" 
+    + str(df4.shape) + "\n" 
+    + str(df5.shape) + "\n" 
+    + str(df6.shape) + "\n" 
+    + str(df7.shape) + "\n" 
+    + str(series1.shape))
+```
+</div>
+</div>
+
+## Basic Plots
+
+R has basic plotting built in to the language whereas for Python, the **matplotlib** library is a good starting point to do quick plotting.  Visualisation is a great way to explore data and relationships which is a key function of data science. 
+
+Note that in Python, to display the graph, the **show()** method is used.  To then show another plot, the graph must be cleared first with **clf()**
+
+Below first builds a scatterplot and then a histogram.
+
+<div class = "row">
+<div class = "column-left">
+#### R
+```{r }
+
+# to plot a scatterplot, plot can be used
+#
+#
+plot(cars$mpg, cars$qsec)
+
+#
+# hist is used to print a histogram 
+hist(cars$cyl)
+```
+</div>
+<div class = "column-right">
+#### Python
+```{python}
+# make a scatter plot with the plt object
+plt.scatter(cars["mpg"], cars["qsec"])
+# Display the plot with plt.show()
+plt.show()
+
+plt.clf()  # Clear the figure
+counts, bins, bars = plt.hist(cars["cyl"])
+plt.show() # then show the new graph
+```
+</div>
+</div>
+
