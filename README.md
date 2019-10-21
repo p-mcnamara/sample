@@ -15,3 +15,5 @@ Techniques used:
   - Agglomerative Hierarchical Clustering
   
 - Shiny R website created
+
+- Html Scraping and API access
