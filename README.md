@@ -1,4 +1,4 @@
-This repository contains examples of R and Python code that has been written for university projects whilst completing my Masters of Data Science and Innovation (MDSI) at the University of Technology Sydney (UTS).
+This repository contains examples of R and Python code and doucmentation written for university projects whilst completing my Masters of Data Science and Innovation (MDSI) at the University of Technology Sydney (UTS).
 
 Techniques used:
 
